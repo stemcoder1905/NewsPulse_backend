@@ -10,8 +10,11 @@ export function getClientAnonymousId(): string {
   return id;
 }
 
+const envApiUrl = (import.meta as any).env?.VITE_API_URL;
+const apiBase = envApiUrl ? `${envApiUrl.replace(/\/$/, '')}/api/v1` : '/api/v1';
+
 const api = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiBase,
   timeout: 10000,
   headers: { 'Content-Type': 'application/json' },
 });
