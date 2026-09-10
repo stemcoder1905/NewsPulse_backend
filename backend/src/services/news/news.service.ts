@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import NewsArticle, { INewsArticle } from '../../models/NewsArticle';
 import Category from '../../models/Category';
 import { NewsProvider, NormalizedArticle } from './providers/newsProvider.interface';
@@ -110,29 +111,34 @@ export class NewsService {
       return JSON.parse(cached);
     }
 
-    try {
-      const skip = (page - 1) * limit;
-      const [articles, total] = await Promise.all([
-        NewsArticle.find({ isDeleted: false })
-          .sort({ publishedAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .exec(),
-        NewsArticle.countDocuments({ isDeleted: false })
-      ]);
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const skip = (page - 1) * limit;
+        const [articles, total] = await Promise.all([
+          NewsArticle.find({ isDeleted: false })
+            .sort({ publishedAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec(),
+          NewsArticle.countDocuments({ isDeleted: false })
+        ]);
 
-      if (articles && articles.length > 0) {
-        const result = { articles, total };
-        await cacheService.set(cacheKey, JSON.stringify(result), 180);
-        return result;
+        if (articles && articles.length > 0) {
+          const result = { articles, total };
+          await cacheService.set(cacheKey, JSON.stringify(result), 180);
+          return result;
+        }
+      } catch (e) {
+        logger.warn('DB query failed in getLatestNews, using fallback mock articles.');
       }
-    } catch (e) {
-      logger.warn('DB query failed in getLatestNews, using fallback mock articles.');
     }
 
     const mockArticles = await this.mockProvider.fetchTopHeadlines('general');
-    return { articles: mockArticles, total: mockArticles.length };
+    const result = { articles: mockArticles, total: mockArticles.length };
+    await cacheService.set(cacheKey, JSON.stringify(result), 180);
+    return result;
   }
+
 
   async getNewsByCategory(category: string, page: number = 1, limit: number = 20): Promise<{ articles: any[]; total: number }> {
     const cat = category.toLowerCase();
@@ -142,57 +148,63 @@ export class NewsService {
       return JSON.parse(cached);
     }
 
-    try {
-      const skip = (page - 1) * limit;
-      const query = { category: cat, isDeleted: false };
-      const [articles, total] = await Promise.all([
-        NewsArticle.find(query)
-          .sort({ publishedAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .exec(),
-        NewsArticle.countDocuments(query)
-      ]);
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const skip = (page - 1) * limit;
+        const query = { category: cat, isDeleted: false };
+        const [articles, total] = await Promise.all([
+          NewsArticle.find(query)
+            .sort({ publishedAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec(),
+          NewsArticle.countDocuments(query)
+        ]);
 
-      if (articles && articles.length > 0) {
-        const result = { articles, total };
-        await cacheService.set(cacheKey, JSON.stringify(result), 180);
-        return result;
+        if (articles && articles.length > 0) {
+          const result = { articles, total };
+          await cacheService.set(cacheKey, JSON.stringify(result), 180);
+          return result;
+        }
+      } catch (e) {
+        logger.warn(`DB query failed for category ${category}, using fallback mock articles.`);
       }
-    } catch (e) {
-      logger.warn(`DB query failed for category ${category}, using fallback mock articles.`);
     }
 
     const mockArticles = await this.mockProvider.fetchNewsByCategory(cat);
-    return { articles: mockArticles, total: mockArticles.length };
+    const result = { articles: mockArticles, total: mockArticles.length };
+    await cacheService.set(cacheKey, JSON.stringify(result), 180);
+    return result;
   }
 
   async searchNews(q: string, page: number = 1, limit: number = 20): Promise<{ articles: any[]; total: number }> {
-    try {
-      const skip = (page - 1) * limit;
-      const query = {
-        isDeleted: false,
-        $or: [
-          { title: { $regex: q, $options: 'i' } },
-          { shortSummary: { $regex: q, $options: 'i' } },
-          { category: { $regex: q, $options: 'i' } }
-        ]
-      };
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const skip = (page - 1) * limit;
+        const query = {
+          isDeleted: false,
+          $or: [
+            { title: { $regex: q, $options: 'i' } },
+            { shortSummary: { $regex: q, $options: 'i' } },
+            { category: { $regex: q, $options: 'i' } }
+          ]
+        };
 
-      const [articles, total] = await Promise.all([
-        NewsArticle.find(query)
-          .sort({ publishedAt: -1 })
-          .skip(skip)
-          .limit(limit)
-          .exec(),
-        NewsArticle.countDocuments(query)
-      ]);
+        const [articles, total] = await Promise.all([
+          NewsArticle.find(query)
+            .sort({ publishedAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .exec(),
+          NewsArticle.countDocuments(query)
+        ]);
 
-      if (articles && articles.length > 0) {
-        return { articles, total };
+        if (articles && articles.length > 0) {
+          return { articles, total };
+        }
+      } catch (e) {
+        logger.warn(`DB query failed for search '${q}', using fallback mock search.`);
       }
-    } catch (e) {
-      logger.warn(`DB query failed for search '${q}', using fallback mock search.`);
     }
 
     const mockArticles = await this.mockProvider.searchNews(q);
@@ -200,38 +212,42 @@ export class NewsService {
   }
 
   async getTrendingNews(limit: number = 10): Promise<any[]> {
-    try {
-      const articles = await NewsArticle.aggregate([
-        { $match: { isDeleted: false } },
-        {
-          $addFields: {
-            trendingScore: {
-              $add: [
-                { $multiply: ['$likesCount', 5] },
-                { $multiply: ['$sharesCount', 8] },
-                { $multiply: ['$bookmarksCount', 10] },
-                '$viewsCount'
-              ]
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const articles = await NewsArticle.aggregate([
+          { $match: { isDeleted: false } },
+          {
+            $addFields: {
+              trendingScore: {
+                $add: [
+                  { $multiply: ['$likesCount', 5] },
+                  { $multiply: ['$sharesCount', 8] },
+                  { $multiply: ['$bookmarksCount', 10] },
+                  '$viewsCount'
+                ]
+              }
             }
-          }
-        },
-        { $sort: { trendingScore: -1, publishedAt: -1 } },
-        { $limit: limit }
-      ]);
+          },
+          { $sort: { trendingScore: -1, publishedAt: -1 } },
+          { $limit: limit }
+        ]);
 
-      if (articles && articles.length > 0) return articles;
-    } catch (e) {
-      logger.warn('DB query failed for getTrendingNews, using fallback mock articles.');
+        if (articles && articles.length > 0) return articles;
+      } catch (e) {
+        logger.warn('DB query failed for getTrendingNews, using fallback mock articles.');
+      }
     }
 
     return this.mockProvider.fetchTopHeadlines('general');
   }
 
   async getArticleById(id: string): Promise<any | null> {
-    try {
-      const article = await NewsArticle.findById(id);
-      if (article) return article;
-    } catch (e) {}
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const article = await NewsArticle.findById(id);
+        if (article) return article;
+      } catch (e) {}
+    }
 
     const mockArticles = await this.mockProvider.fetchTopHeadlines('general');
     return mockArticles[0] || null;
@@ -239,3 +255,4 @@ export class NewsService {
 }
 
 export const newsService = new NewsService();
+

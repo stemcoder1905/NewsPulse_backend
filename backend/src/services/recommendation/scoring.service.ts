@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import UserInterestProfile, { IUserInterestProfile } from '../../models/UserInterestProfile';
 import UserNewsInteraction from '../../models/UserNewsInteraction';
 import User from '../../models/User';
@@ -26,6 +27,9 @@ export class ScoringService {
   // Half-life decay constant (lambda for ~14 days half-life)
   private DECAY_LAMBDA = 0.049;
 
+  // In-memory fallback scores
+  private fallbackScores = new Map<string, Map<string, number>>();
+
   /**
    * Process a user event interaction and update their interest profile score
    */
@@ -44,19 +48,36 @@ export class ScoringService {
 
     if (baseScore === 0) return;
 
-    let profile = await this.getOrCreateProfile(userId, anonymousUserId);
-    let currentCatScores = profile.categoryScores || new Map<string, number>();
+    const userKey = userId || anonymousUserId || 'guest_default';
+    if (!this.fallbackScores.has(userKey)) {
+      this.fallbackScores.set(userKey, new Map<string, number>());
+    }
+    const memScores = this.fallbackScores.get(userKey)!;
+    const existingMemScore = memScores.get(cat) || 50;
+    memScores.set(cat, Math.max(0, Math.min(100, existingMemScore + baseScore)));
 
-    const existingScore = currentCatScores.get(cat) || 50; // Base baseline score is 50
-    const newScore = Math.max(0, Math.min(100, existingScore + baseScore));
+    if (mongoose.connection.readyState !== 1) {
+      return;
+    }
 
-    currentCatScores.set(cat, newScore);
-    profile.categoryScores = currentCatScores;
-    profile.updatedAt = new Date();
+    try {
+      let profile = await this.getOrCreateProfile(userId, anonymousUserId);
+      let currentCatScores = profile.categoryScores || new Map<string, number>();
 
-    await profile.save();
-    logger.info(`Updated interest profile for category '${cat}': ${existingScore} -> ${newScore}`);
+      const existingScore = currentCatScores.get(cat) || 50; // Base baseline score is 50
+      const newScore = Math.max(0, Math.min(100, existingScore + baseScore));
+
+      currentCatScores.set(cat, newScore);
+      profile.categoryScores = currentCatScores;
+      profile.updatedAt = new Date();
+
+      await profile.save();
+      logger.info(`Updated interest profile for category '${cat}': ${existingScore} -> ${newScore}`);
+    } catch (err: any) {
+      logger.warn('Scoring service processInteraction error:', err.message);
+    }
   }
+
 
   /**
    * Retrieves or creates a UserInterestProfile
@@ -87,22 +108,47 @@ export class ScoringService {
    * Recalculates interest scores applying exponential time decay
    */
   async getDecayedCategoryScores(userId?: string, anonymousUserId?: string): Promise<Record<string, number>> {
-    const profile = await this.getOrCreateProfile(userId, anonymousUserId);
-    const result: Record<string, number> = {};
-    const now = Date.now();
-    const lastUpdate = profile.updatedAt ? profile.updatedAt.getTime() : now;
-    const daysPassed = (now - lastUpdate) / (1000 * 60 * 60 * 24);
-
-    const decayFactor = Math.exp(-this.DECAY_LAMBDA * daysPassed);
-
-    if (profile.categoryScores) {
-      profile.categoryScores.forEach((score, category) => {
-        result[category] = Math.round(score * decayFactor);
-      });
+    const userKey = userId || anonymousUserId || 'guest_default';
+    if (mongoose.connection.readyState !== 1) {
+      const result: Record<string, number> = {};
+      const memScores = this.fallbackScores.get(userKey);
+      if (memScores) {
+        memScores.forEach((score, cat) => {
+          result[cat] = score;
+        });
+      }
+      return result;
     }
 
-    return result;
+    try {
+      const profile = await this.getOrCreateProfile(userId, anonymousUserId);
+      const result: Record<string, number> = {};
+      const now = Date.now();
+      const lastUpdate = profile.updatedAt ? profile.updatedAt.getTime() : now;
+      const daysPassed = (now - lastUpdate) / (1000 * 60 * 60 * 24);
+
+      const decayFactor = Math.exp(-this.DECAY_LAMBDA * daysPassed);
+
+      if (profile.categoryScores) {
+        profile.categoryScores.forEach((score, category) => {
+          result[category] = Math.round(score * decayFactor);
+        });
+      }
+
+      return result;
+    } catch (err: any) {
+      logger.warn('Error in getDecayedCategoryScores, returning memory scores');
+      const result: Record<string, number> = {};
+      const memScores = this.fallbackScores.get(userKey);
+      if (memScores) {
+        memScores.forEach((score, cat) => {
+          result[cat] = score;
+        });
+      }
+      return result;
+    }
   }
 }
 
 export const scoringService = new ScoringService();
+

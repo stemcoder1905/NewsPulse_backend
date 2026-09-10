@@ -2,11 +2,14 @@ import mongoose from 'mongoose';
 import { config } from './index';
 import logger from '../utils/logger';
 
+// Fail fast when MongoDB is disconnected instead of buffering queries for 10 seconds
+mongoose.set('bufferCommands', false);
+
 export const connectDB = async (): Promise<void> => {
   try {
     const conn = await mongoose.connect(config.mongoUri, {
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
+      serverSelectionTimeoutMS: 5000,
+      connectTimeoutMS: 5000,
       socketTimeoutMS: 45000,
       tls: config.mongoUri.includes('mongodb+srv') || config.mongoUri.includes('mongodb.net'),
       retryWrites: true,
@@ -17,3 +20,4 @@ export const connectDB = async (): Promise<void> => {
     logger.warn(`MongoDB Connection Warning: ${error.message}. Running server with memory cache fallback.`);
   }
 };
+

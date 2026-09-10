@@ -1,7 +1,9 @@
+import mongoose from 'mongoose';
 import NewsArticle, { INewsArticle } from '../../models/NewsArticle';
 import User from '../../models/User';
 import AppConfiguration from '../../models/AppConfiguration';
 import { scoringService } from './scoring.service';
+import { MockNewsProvider } from '../news/providers/MockNewsProvider';
 import { config } from '../../config';
 import logger from '../../utils/logger';
 
@@ -12,6 +14,8 @@ export interface FeedResponseItem {
 }
 
 export class RecommendationService {
+  private mockProvider = new MockNewsProvider();
+
   /**
    * Generates a personalized news feed with multi-factor scoring & explainability
    */
@@ -23,40 +27,56 @@ export class RecommendationService {
   ): Promise<{ items: any[]; nextCursor?: string; recommendedCategories: string[] }> {
     // Fetch weights from app config or fallback to config file
     let weights = config.recommendationWeights;
-    try {
-      const appConf = await AppConfiguration.findOne({ key: 'global_config' });
-      if (appConf?.recommendationWeights) {
-        weights = appConf.recommendationWeights;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const appConf = await AppConfiguration.findOne({ key: 'global_config' });
+        if (appConf?.recommendationWeights) {
+          weights = appConf.recommendationWeights;
+        }
+      } catch (e) {
+        logger.warn('Failed to load DB app config, using defaults.');
       }
-    } catch (e) {
-      logger.warn('Failed to load DB app config, using defaults.');
     }
 
     // Get user preferences and interest scores
     let preferredCategories: string[] = [];
-    if (userId) {
-      const user = await User.findById(userId);
-      if (user) {
-        preferredCategories = user.preferredCategories || [];
-      }
+    if (userId && mongoose.connection.readyState === 1) {
+      try {
+        const user = await User.findById(userId);
+        if (user) {
+          preferredCategories = user.preferredCategories || [];
+        }
+      } catch (e) {}
     }
 
     const categoryInterestScores = await scoringService.getDecayedCategoryScores(userId, anonymousUserId);
 
     // Fetch candidate articles published recently
-    const query: any = { isDeleted: false };
-    if (cursor) {
-      query.publishedAt = { $lt: new Date(cursor) };
+    let candidateArticles: any[] = [];
+    if (mongoose.connection.readyState === 1) {
+      try {
+        const query: any = { isDeleted: false };
+        if (cursor) {
+          query.publishedAt = { $lt: new Date(cursor) };
+        }
+
+        candidateArticles = await NewsArticle.find(query)
+          .sort({ publishedAt: -1 })
+          .limit(100)
+          .exec();
+      } catch (e) {
+        logger.warn('Error fetching candidateArticles from DB, falling back to mock provider');
+      }
     }
 
-    const candidateArticles = await NewsArticle.find(query)
-      .sort({ publishedAt: -1 })
-      .limit(100)
-      .exec();
+    if (!candidateArticles || candidateArticles.length === 0) {
+      candidateArticles = await this.mockProvider.fetchTopHeadlines('general');
+    }
 
     if (candidateArticles.length === 0) {
       return { items: [], recommendedCategories: preferredCategories };
     }
+
 
     // Rank candidate articles using multi-factor scoring
     const now = Date.now();
@@ -159,7 +179,16 @@ export class RecommendationService {
    * Explains why an article was recommended to a specific user
    */
   async explainRecommendation(articleId: string, userId?: string, anonymousUserId?: string): Promise<string[]> {
-    const article = await NewsArticle.findById(articleId);
+    let article: any = null;
+    if (mongoose.connection.readyState === 1) {
+      try {
+        article = await NewsArticle.findById(articleId);
+      } catch (e) {}
+    }
+    if (!article) {
+      const mockArticles = await this.mockProvider.fetchTopHeadlines('general');
+      article = mockArticles.find(a => a.externalId === articleId) || mockArticles[0];
+    }
     if (!article) return ['Article not found'];
 
     const catScores = await scoringService.getDecayedCategoryScores(userId, anonymousUserId);
@@ -171,12 +200,15 @@ export class RecommendationService {
       reasons.push(`You have a high interest score of ${score}/100 in ${article.category.toUpperCase()} news.`);
     }
 
-    if (userId) {
-      const user = await User.findById(userId);
-      if (user?.preferredCategories?.includes(cat)) {
-        reasons.push(`You selected ${article.category.toUpperCase()} during your account onboarding.`);
-      }
+    if (userId && mongoose.connection.readyState === 1) {
+      try {
+        const user = await User.findById(userId);
+        if (user?.preferredCategories?.includes(cat)) {
+          reasons.push(`You selected ${article.category.toUpperCase()} during your account onboarding.`);
+        }
+      } catch (e) {}
     }
+
 
     if (article.likesCount > 10 || article.viewsCount > 50) {
       reasons.push(`This story is currently trending on NewsPulse with high reader engagement.`);
