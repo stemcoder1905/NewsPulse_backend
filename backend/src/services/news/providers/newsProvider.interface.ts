@@ -1,4 +1,5 @@
 export interface NormalizedArticle {
+  _id?: string;
   externalId: string;
   title: string;
   shortSummary: string;

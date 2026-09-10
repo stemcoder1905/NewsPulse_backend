@@ -11,8 +11,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'India expands national AI computing initiative with 10,000+ GPU supercomputer infrastructure.',
       content: 'India has officially deployed its state-of-the-art AI supercomputing stack under the IndiaAI Mission. The facility features over 10,000 high-performance accelerators, enabling domestic startups, academic institutions, and public research hubs to train large language models and foundation vision models locally.',
       sourceName: 'TechPulse India',
-      sourceUrl: 'https://example.com/tech/india-ai-mission',
-      articleUrl: 'https://example.com/tech/india-ai-mission',
+      sourceUrl: 'https://www.thehindu.com/sci-tech/technology/',
+      articleUrl: 'https://www.thehindu.com/sci-tech/technology/',
       imageUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80',
       author: 'Aarav Sharma',
       publishedAt: new Date(Date.now() - 30 * 60 * 1000), // 30 mins ago
@@ -29,8 +29,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'Cricket Test Match update: India establishes a 320-run lead against Australia.',
       content: 'In a thrilling day of Test match cricket, India built a formidable 320-run lead over Australia. The middle-order batter scored a masterful 124 off 160 balls, featuring 14 boundaries and two towering sixes to dismantle the opposition attack.',
       sourceName: 'CricPulse Express',
-      sourceUrl: 'https://example.com/sports/ind-vs-aus-test-day3',
-      articleUrl: 'https://example.com/sports/ind-vs-aus-test-day3',
+      sourceUrl: 'https://www.espncricinfo.com/',
+      articleUrl: 'https://www.espncricinfo.com/',
       imageUrl: 'https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?auto=format&fit=crop&w=800&q=80',
       author: 'Rohan Mehta',
       publishedAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
@@ -47,8 +47,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'Global equity markets surge on positive economic data and cooling inflation figures.',
       content: 'Financial equity indices across Asia, Europe, and Wall Street futures registered significant gains today after key central bank data indicated inflation rates dropped to a 3-year low. Tech giants and renewable energy stocks recorded major inflows.',
       sourceName: 'Financial Chronicle',
-      sourceUrl: 'https://example.com/business/global-markets-rally',
-      articleUrl: 'https://example.com/business/global-markets-rally',
+      sourceUrl: 'https://www.bloomberg.com/markets',
+      articleUrl: 'https://www.bloomberg.com/markets',
       imageUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=800&q=80',
       author: 'Priya Iyer',
       publishedAt: new Date(Date.now() - 4 * 60 * 60 * 1000), // 4 hours ago
@@ -65,8 +65,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'AI model optimizes clean energy distribution and grid efficiency.',
       content: 'A multi-institutional team of AI scientists and electrical engineers has unveiled a novel transformer architecture tailored for real-time power grid management. The model dynamically balances solar, wind, and battery reserves based on predictive micro-weather patterns.',
       sourceName: 'AI Science Daily',
-      sourceUrl: 'https://example.com/ai/ai-grid-breakthrough',
-      articleUrl: 'https://example.com/ai/ai-grid-breakthrough',
+      sourceUrl: 'https://www.technologyreview.com/',
+      articleUrl: 'https://www.technologyreview.com/',
       imageUrl: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=800&q=80',
       author: 'Dr. Vikram Patel',
       publishedAt: new Date(Date.now() - 5 * 60 * 60 * 1000),
@@ -83,8 +83,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'Medical research highlights key daily habits for heart health and active longevity.',
       content: 'Cardiovascular specialists and nutritionists have released findings from a decade-long health study emphasizing that moderate daily physical movement alongside nutrient-dense dietary choices significantly lowers arterial inflammation and improves cellular vitality.',
       sourceName: 'Health & Wellness Journal',
-      sourceUrl: 'https://example.com/health/longevity-study-mediterranean',
-      articleUrl: 'https://example.com/health/longevity-study-mediterranean',
+      sourceUrl: 'https://www.healthline.com/',
+      articleUrl: 'https://www.healthline.com/',
       imageUrl: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80',
       author: 'Dr. Ananya Roy',
       publishedAt: new Date(Date.now() - 8 * 60 * 60 * 1000),
@@ -101,8 +101,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'ISRO satellite mission set to deliver ultra-high resolution environmental mapping.',
       content: 'ISRO engineers at Sriharikota spaceport have successfully completed vibration and vacuum chamber testing for the EOS-08 hyperspectral satellite. The space asset will monitor ocean currents, forest canopy density, and crop health across the Indian subcontinent.',
       sourceName: 'Space & Defense Times',
-      sourceUrl: 'https://example.com/science/isro-satellite-launch',
-      articleUrl: 'https://example.com/science/isro-satellite-launch',
+      sourceUrl: 'https://www.isro.gov.in/',
+      articleUrl: 'https://www.isro.gov.in/',
       imageUrl: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?auto=format&fit=crop&w=800&q=80',
       author: 'Karan Joshi',
       publishedAt: new Date(Date.now() - 10 * 60 * 60 * 1000),
@@ -119,8 +119,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'Educational reforms bring practical technology skills to millions of school students.',
       content: 'The Ministry of Education has released updated curriculum frameworks introducing foundational algorithms, data privacy principles, and practical robotics workshops for classes 6 through 12 across central board schools.',
       sourceName: 'Education World India',
-      sourceUrl: 'https://example.com/education/coding-ai-in-schools',
-      articleUrl: 'https://example.com/education/coding-ai-in-schools',
+      sourceUrl: 'https://timesofindia.indiatimes.com/education',
+      articleUrl: 'https://timesofindia.indiatimes.com/education',
       imageUrl: 'https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80',
       author: 'Suman Sen',
       publishedAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
@@ -137,8 +137,8 @@ export class MockNewsProvider implements NewsProvider {
       description: 'International agreement secures major environmental funding for carbon sinks.',
       content: 'The UN Climate Summit concluded with a unanimous pledge to establish a global biodiversity fund. The capital will directly support indigenous community-led reforestation efforts in South America, Southeast Asia, and Africa.',
       sourceName: 'Planet Earth Digest',
-      sourceUrl: 'https://example.com/environment/climate-summit-accord',
-      articleUrl: 'https://example.com/environment/climate-summit-accord',
+      sourceUrl: 'https://www.nationalgeographic.com/environment',
+      articleUrl: 'https://www.nationalgeographic.com/environment',
       imageUrl: 'https://images.unsplash.com/photo-1448375240586-882707db888b?auto=format&fit=crop&w=800&q=80',
       author: 'Elena Rostova',
       publishedAt: new Date(Date.now() - 14 * 60 * 60 * 1000),
@@ -149,6 +149,7 @@ export class MockNewsProvider implements NewsProvider {
       provider: 'mock'
     }
   ];
+
 
   async fetchTopHeadlines(category: string = 'general'): Promise<NormalizedArticle[]> {
     if (category.toLowerCase() === 'general') {

@@ -8,6 +8,7 @@ export class GoogleNewsRSSProvider implements NewsProvider {
 
   constructor() {
     this.parser = new Parser({
+      timeout: 5000,
       customFields: {
         item: ['media:content', 'contentSnippet']
       }
@@ -67,8 +68,11 @@ export class GoogleNewsRSSProvider implements NewsProvider {
     const snippet = item.contentSnippet || item.content || cleanTitle;
     const shortSummary = snippet.replace(/<[^>]*>?/gm, '').trim().slice(0, 300);
 
+    const id = item.guid || item.link || `gnews_${Date.now()}_${Math.random()}`;
+
     return {
-      externalId: item.guid || item.link || `gnews_${Date.now()}_${Math.random()}`,
+      _id: id,
+      externalId: id,
       title: cleanTitle,
       shortSummary,
       description: shortSummary,

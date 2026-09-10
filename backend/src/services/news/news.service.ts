@@ -13,15 +13,17 @@ import logger from '../../utils/logger';
 export class NewsService {
   private providers: NewsProvider[];
   private mockProvider: MockNewsProvider;
+  private googleNewsProvider: GoogleNewsRSSProvider;
   private mediastackProvider: MediastackProvider;
 
   constructor() {
     this.mockProvider = new MockNewsProvider();
+    this.googleNewsProvider = new GoogleNewsRSSProvider();
     this.mediastackProvider = new MediastackProvider();
     this.providers = [
       this.mediastackProvider,
       new NewsAPIProvider(),
-      new GoogleNewsRSSProvider(),
+      this.googleNewsProvider,
       this.mockProvider
     ];
   }
@@ -133,12 +135,24 @@ export class NewsService {
       }
     }
 
-    const mockArticles = await this.mockProvider.fetchTopHeadlines('general');
-    const result = { articles: mockArticles, total: mockArticles.length };
+    let fallbackArticles: any[] = [];
+    try {
+      fallbackArticles = await this.googleNewsProvider.fetchTopHeadlines('general');
+    } catch (e: any) {
+      logger.warn(`GoogleNewsRSS fallback error in getLatestNews: ${e?.message}`);
+    }
+
+    if (!fallbackArticles || fallbackArticles.length === 0) {
+      fallbackArticles = await this.mockProvider.fetchTopHeadlines('general');
+    }
+
+    const total = fallbackArticles.length;
+    const skip = (page - 1) * limit;
+    const paginated = fallbackArticles.slice(skip, skip + limit);
+    const result = { articles: paginated.length > 0 ? paginated : fallbackArticles, total };
     await cacheService.set(cacheKey, JSON.stringify(result), 180);
     return result;
   }
-
 
   async getNewsByCategory(category: string, page: number = 1, limit: number = 20): Promise<{ articles: any[]; total: number }> {
     const cat = category.toLowerCase();
@@ -167,12 +181,25 @@ export class NewsService {
           return result;
         }
       } catch (e) {
-        logger.warn(`DB query failed for category ${category}, using fallback mock articles.`);
+        logger.warn(`DB query failed for category ${category}, using fallback articles.`);
       }
     }
 
-    const mockArticles = await this.mockProvider.fetchNewsByCategory(cat);
-    const result = { articles: mockArticles, total: mockArticles.length };
+    let fallbackArticles: any[] = [];
+    try {
+      fallbackArticles = await this.googleNewsProvider.fetchNewsByCategory(cat);
+    } catch (e: any) {
+      logger.warn(`GoogleNewsRSS fallback error for category ${cat}: ${e?.message}`);
+    }
+
+    if (!fallbackArticles || fallbackArticles.length === 0) {
+      fallbackArticles = await this.mockProvider.fetchNewsByCategory(cat);
+    }
+
+    const total = fallbackArticles.length;
+    const skip = (page - 1) * limit;
+    const paginated = fallbackArticles.slice(skip, skip + limit);
+    const result = { articles: paginated.length > 0 ? paginated : fallbackArticles, total };
     await cacheService.set(cacheKey, JSON.stringify(result), 180);
     return result;
   }
@@ -203,12 +230,25 @@ export class NewsService {
           return { articles, total };
         }
       } catch (e) {
-        logger.warn(`DB query failed for search '${q}', using fallback mock search.`);
+        logger.warn(`DB query failed for search '${q}', using fallback search.`);
       }
     }
 
-    const mockArticles = await this.mockProvider.searchNews(q);
-    return { articles: mockArticles, total: mockArticles.length };
+    let fallbackArticles: any[] = [];
+    try {
+      fallbackArticles = await this.googleNewsProvider.searchNews(q);
+    } catch (e: any) {
+      logger.warn(`GoogleNewsRSS search fallback error for '${q}': ${e?.message}`);
+    }
+
+    if (!fallbackArticles || fallbackArticles.length === 0) {
+      fallbackArticles = await this.mockProvider.searchNews(q);
+    }
+
+    const total = fallbackArticles.length;
+    const skip = (page - 1) * limit;
+    const paginated = fallbackArticles.slice(skip, skip + limit);
+    return { articles: paginated.length > 0 ? paginated : fallbackArticles, total };
   }
 
   async getTrendingNews(limit: number = 10): Promise<any[]> {
@@ -234,11 +274,19 @@ export class NewsService {
 
         if (articles && articles.length > 0) return articles;
       } catch (e) {
-        logger.warn('DB query failed for getTrendingNews, using fallback mock articles.');
+        logger.warn('DB query failed for getTrendingNews, using fallback articles.');
       }
     }
 
-    return this.mockProvider.fetchTopHeadlines('general');
+    try {
+      const rssArticles = await this.googleNewsProvider.fetchTopHeadlines('general');
+      if (rssArticles && rssArticles.length > 0) {
+        return rssArticles.slice(0, limit);
+      }
+    } catch (e) {}
+
+    const mockArticles = await this.mockProvider.fetchTopHeadlines('general');
+    return mockArticles.slice(0, limit);
   }
 
   async getArticleById(id: string): Promise<any | null> {
@@ -250,6 +298,9 @@ export class NewsService {
     }
 
     const mockArticles = await this.mockProvider.fetchTopHeadlines('general');
+    const matched = mockArticles.find((a: any) => a._id === id || a.externalId === id);
+    if (matched) return matched;
+
     return mockArticles[0] || null;
   }
 }
