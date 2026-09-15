@@ -4,6 +4,7 @@ import { fetchArticle, Article } from '../services/api';
 import { Clock, ExternalLink, ArrowLeft, Share2 } from 'lucide-react';
 import { formatDistanceToNow, format } from 'date-fns';
 import { resolveUniqueArticleThumbnail, generateEditorialThumbnail } from '../utils/thumbnailGenerator';
+import { format60WordSummary } from '../utils/summaryFormatter';
 
 export const ArticleDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -114,13 +115,12 @@ export const ArticleDetail: React.FC = () => {
       </figure>
 
       <div className="prose prose-invert prose-lg max-w-none prose-p:text-slate-300 prose-p:leading-relaxed mb-12">
-        <p className="text-xl text-slate-200 font-medium leading-relaxed mb-8">
-          {article.shortSummary}
+        <div className="inline-flex items-center space-x-2 mb-4 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
+          <span>⚡ 60-Word Story Brief</span>
+        </div>
+        <p className="text-xl text-slate-100 font-normal leading-relaxed mb-8">
+          {format60WordSummary(article)}
         </p>
-        
-        {article.description && article.description !== article.shortSummary && (
-          <p>{article.description}</p>
-        )}
       </div>
 
       {/* Embedded Full Article */}

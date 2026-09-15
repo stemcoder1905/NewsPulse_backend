@@ -6,6 +6,7 @@ import {
   generateEditorialThumbnail,
   resolveUniqueArticleThumbnail
 } from '../utils/thumbnailGenerator';
+import { format60WordSummary } from '../utils/summaryFormatter';
 
 interface NewsCardProps {
   article: Article;
@@ -32,6 +33,8 @@ export const NewsCard: React.FC<NewsCardProps> = ({
       onArticleClick(article);
     }
   };
+
+  const summary60Words = format60WordSummary(article);
 
   return (
     <article className={`group flex flex-col bg-slate-900 rounded-2xl overflow-hidden border ${isPrioritized ? 'border-amber-500/40 shadow-lg shadow-amber-500/5' : 'border-slate-800 hover:border-slate-700'} transition-all duration-300 ${featured ? 'md:flex-row md:col-span-2' : ''}`}>
@@ -83,8 +86,8 @@ export const NewsCard: React.FC<NewsCardProps> = ({
           </a>
         </h3>
 
-        <p className={`text-slate-400 mb-4 ${featured ? 'text-base line-clamp-4' : 'text-sm line-clamp-3'}`}>
-          {article.shortSummary || article.description}
+        <p className={`text-slate-300 mb-4 leading-relaxed font-normal ${featured ? 'text-base line-clamp-6' : 'text-sm line-clamp-6'}`}>
+          {summary60Words}
         </p>
 
         {recommendationReason && (
@@ -95,13 +98,18 @@ export const NewsCard: React.FC<NewsCardProps> = ({
         )}
 
         <div className="mt-auto pt-4 border-t border-slate-800 flex items-center justify-between">
-          <span className="text-xs text-slate-500 font-medium">
-            {article.provider === 'mediastack' ? '⚡ Mediastack' : '🤖 AI Curated'}
-          </span>
+          <div className="flex items-center space-x-2">
+            <span className="text-xs text-slate-500 font-medium">
+              {article.provider === 'mediastack' ? '⚡ Mediastack' : '🤖 AI Curated'}
+            </span>
+            <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              60 Words
+            </span>
+          </div>
           <a 
             href={article.articleUrl} 
             target="_blank" 
-            rel="noopener noreferrer"
+            rel="noopener noreferrer" 
             onClick={handleClick}
             className="flex items-center text-xs font-semibold text-emerald-400 hover:text-emerald-300 transition-colors"
           >

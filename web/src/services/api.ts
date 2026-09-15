@@ -33,6 +33,7 @@ export interface Article {
   title: string;
   shortSummary: string;
   description: string;
+  content?: string;
   sourceName: string;
   sourceUrl: string;
   articleUrl: string;

@@ -7,6 +7,7 @@ import { NewsAPIProvider } from './providers/NewsAPIProvider';
 import { GoogleNewsRSSProvider } from './providers/GoogleNewsRSSProvider';
 import { MediastackProvider } from './providers/MediastackProvider';
 import { MockNewsProvider } from './providers/MockNewsProvider';
+import { format60WordSummary } from './summary.helper';
 import { cacheService } from '../../config/redis';
 import logger from '../../utils/logger';
 
@@ -32,18 +33,15 @@ export class NewsService {
     return this.mediastackProvider;
   }
 
-  private generateShortSummary(title: string, rawSummary?: string, content?: string): string {
-    const candidateText = rawSummary && rawSummary.length > 50 ? rawSummary : (content && content.length > 50 ? content : title);
-    const cleaned = candidateText.replace(/<[^>]*>?/gm, '').replace(/\s+/g, ' ').trim();
-    if (cleaned.length <= 280) {
-      return cleaned;
-    }
-    const truncated = cleaned.slice(0, 277);
-    const lastPeriod = truncated.lastIndexOf('.');
-    if (lastPeriod > 150) {
-      return truncated.slice(0, lastPeriod + 1);
-    }
-    return `${truncated}...`;
+  private generateShortSummary(title: string, rawSummary?: string, content?: string, category?: string, sourceName?: string): string {
+    return format60WordSummary({
+      title,
+      sourceName,
+      category,
+      shortSummary: rawSummary,
+      content: content || rawSummary,
+      description: rawSummary
+    });
   }
 
   async ingestNews(): Promise<{ fetched: number; inserted: number; duplicates: number }> {
@@ -68,7 +66,7 @@ export class NewsService {
                 continue;
               }
 
-              const shortSummary = this.generateShortSummary(raw.title, raw.shortSummary, raw.content);
+              const shortSummary = this.generateShortSummary(raw.title, raw.shortSummary, raw.content, raw.category, raw.sourceName);
 
               await NewsArticle.create({
                 externalId: raw.externalId,

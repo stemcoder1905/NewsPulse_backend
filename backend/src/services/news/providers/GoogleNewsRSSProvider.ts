@@ -1,5 +1,6 @@
 import Parser from 'rss-parser';
 import { NewsProvider, NormalizedArticle } from './newsProvider.interface';
+import { format60WordSummary } from '../summary.helper';
 import logger from '../../../utils/logger';
 
 export class GoogleNewsRSSProvider implements NewsProvider {
@@ -66,7 +67,13 @@ export class GoogleNewsRSSProvider implements NewsProvider {
     const cleanTitle = parts.join(' - ');
 
     const snippet = item.contentSnippet || item.content || cleanTitle;
-    const shortSummary = snippet.replace(/<[^>]*>?/gm, '').trim().slice(0, 300);
+    const rawSummary = snippet.replace(/<[^>]*>?/gm, '').trim();
+    const shortSummary = format60WordSummary({
+      title: cleanTitle,
+      sourceName,
+      category,
+      shortSummary: rawSummary
+    });
 
     const id = item.guid || item.link || `gnews_${Date.now()}_${Math.random()}`;
 
