@@ -116,7 +116,7 @@ export const ArticleDetail: React.FC = () => {
 
       <div className="prose prose-invert prose-lg max-w-none prose-p:text-slate-300 prose-p:leading-relaxed mb-12">
         <div className="inline-flex items-center space-x-2 mb-4 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold uppercase tracking-wider">
-          <span>⚡ 60-Word Story Brief</span>
+          <span>⚡ 60-70 Word Story Brief</span>
         </div>
         <p className="text-xl text-slate-100 font-normal leading-relaxed mb-8">
           {format60WordSummary(article)}

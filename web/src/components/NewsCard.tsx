@@ -80,13 +80,13 @@ export const NewsCard: React.FC<NewsCardProps> = ({
           </span>
         </div>
 
-        <h3 className={`font-bold text-slate-100 mb-3 group-hover:text-emerald-400 transition-colors ${featured ? 'text-2xl md:text-3xl line-clamp-3' : 'text-lg line-clamp-2'}`}>
+        <h3 className={`font-bold text-slate-100 mb-3 group-hover:text-emerald-400 transition-colors ${featured ? 'text-2xl md:text-3xl' : 'text-lg'}`}>
           <a href={article.articleUrl} target="_blank" rel="noopener noreferrer" onClick={handleClick}>
             {article.title}
           </a>
         </h3>
 
-        <p className={`text-slate-300 mb-4 leading-relaxed font-normal ${featured ? 'text-base line-clamp-6' : 'text-sm line-clamp-6'}`}>
+        <p className={`text-slate-300 mb-4 leading-relaxed font-normal ${featured ? 'text-sm md:text-base' : 'text-sm'}`}>
           {summary60Words}
         </p>
 
@@ -103,7 +103,7 @@ export const NewsCard: React.FC<NewsCardProps> = ({
               {article.provider === 'mediastack' ? '⚡ Mediastack' : '🤖 AI Curated'}
             </span>
             <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              60 Words
+              60-70 Words
             </span>
           </div>
           <a 
