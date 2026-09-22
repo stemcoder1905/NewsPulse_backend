@@ -15,7 +15,7 @@ const apiBase = envApiUrl ? `${envApiUrl.replace(/\/$/, '')}/api/v1` : '/api/v1'
 
 const api = axios.create({
   baseURL: apiBase,
-  timeout: 10000,
+  timeout: 75000,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -26,6 +26,40 @@ api.interceptors.request.use((config) => {
   config.headers['x-anonymous-id'] = getClientAnonymousId();
   return config;
 });
+
+// Auto-retry interceptor for Render cold starts (HTTP 502/503/504, network errors, timeouts)
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const config = error.config as any;
+    if (!config) return Promise.reject(error);
+
+    config.__retryCount = config.__retryCount || 0;
+    const MAX_RETRIES = 2;
+
+    const isColdStartOrTimeout =
+      error.code === 'ECONNABORTED' ||
+      !error.response ||
+      [502, 503, 504].includes(error.response?.status);
+
+    if (isColdStartOrTimeout && config.__retryCount < MAX_RETRIES) {
+      config.__retryCount += 1;
+      const delayMs = config.__retryCount * 2500;
+      console.warn(`[NewsPulse API] Cloud server wake-up/timeout detected. Retrying (${config.__retryCount}/${MAX_RETRIES}) in ${delayMs}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+      return api(config);
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// Warm-up ping to wake up sleeping Render container immediately on page load
+export const warmupBackend = () => {
+  api.get('/health').catch(() => {
+    // Warmup silent fail
+  });
+};
 
 // Types
 export interface Article {

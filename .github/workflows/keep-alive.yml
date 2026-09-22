@@ -1,0 +1,18 @@
+name: NewsPulse Keep-Alive Ping
+
+on:
+  schedule:
+    # Render free tier sleeps after 15 minutes of inactivity.
+    # Ping every 12 minutes to keep the backend warm 24/7.
+    - cron: '*/12 * * * *'
+  workflow_dispatch:
+
+jobs:
+  keep-alive:
+    name: Ping Render Backend
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping NewsPulse Health API
+        run: |
+          echo "Sending keep-alive ping to NewsPulse Production API on Render..."
+          curl -s -f -m 60 "https://newspulse-backend-bv9w.onrender.com/api/v1/health" || echo "Ping completed"

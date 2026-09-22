@@ -26,15 +26,34 @@ import {
   reRankNewFeed
 } from '../utils/userInterestTracker';
 import { resolveUniqueArticleThumbnail } from '../utils/thumbnailGenerator';
-import { Loader2, AlertCircle, Sparkles, Newspaper, History } from 'lucide-react';
+import { Loader2, AlertCircle, Sparkles, Newspaper, History, RefreshCw } from 'lucide-react';
+
+// Local feed cache helpers to ensure users immediately see stories even during cold starts
+const getFeedCacheKey = (category: string | null, query: string | null) =>
+  `np_articles_cache_${category || 'all'}_${query || 'none'}`;
+
+const getCachedArticles = (category: string | null, query: string | null): Article[] => {
+  try {
+    const raw = localStorage.getItem(getFeedCacheKey(category, query));
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return [];
+};
 
 export const Home: React.FC = () => {
   const [searchParams] = useSearchParams();
   const category = searchParams.get('category');
   const query = searchParams.get('q');
 
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
+  const [articles, setArticles] = useState<Article[]>(() => getCachedArticles(category, query));
+  const [loading, setLoading] = useState(() => getCachedArticles(category, query).length === 0);
+  const [isWakingUp, setIsWakingUp] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // User reading history (Old Feed) and interest profile state (backed by Backend API)
@@ -48,10 +67,33 @@ export const Home: React.FC = () => {
   // Mobile responsive view tabs: 'new' vs 'old'
   const [mobileTab, setMobileTab] = useState<'new' | 'old'>('new');
 
+  // Sync cached articles if query or category changes
   useEffect(() => {
+    const cached = getCachedArticles(category, query);
+    if (cached.length > 0) {
+      setArticles(cached);
+    }
+  }, [category, query]);
+
+  useEffect(() => {
+    let wakeTimer: any;
+    let isSubscribed = true;
+
     const loadNews = async () => {
-      setLoading(true);
+      const hasCached = getCachedArticles(category, query).length > 0;
+      if (!hasCached) {
+        setLoading(true);
+      }
       setError(null);
+      setIsWakingUp(false);
+
+      // Trigger friendly cold-start notice if backend takes > 3.5s (sleeping Render instance)
+      wakeTimer = setTimeout(() => {
+        if (isSubscribed) {
+          setIsWakingUp(true);
+        }
+      }, 3500);
+
       try {
         let res;
         if (query) {
@@ -61,21 +103,45 @@ export const Home: React.FC = () => {
         } else {
           res = await fetchLatestNews(1, 40);
         }
-        
-        if (res.data?.success) {
-          setArticles(res.data.data.articles || []);
+
+        if (!isSubscribed) return;
+
+        if (res.data?.success && Array.isArray(res.data.data.articles)) {
+          setArticles(res.data.data.articles);
+          try {
+            localStorage.setItem(
+              getFeedCacheKey(category, query),
+              JSON.stringify(res.data.data.articles.slice(0, 40))
+            );
+          } catch (e) {
+            // ignore
+          }
+          setError(null);
         } else {
-          setError('Failed to fetch news format.');
+          if (!hasCached) {
+            setError('Failed to fetch news format.');
+          }
         }
       } catch (err: any) {
-        setError(err.response?.data?.error || err.message || 'An error occurred fetching news.');
+        if (!isSubscribed) return;
+        const msg = err.response?.data?.error || err.message || 'Server is taking longer to respond.';
+        setError(msg);
       } finally {
-        setLoading(false);
+        if (isSubscribed) {
+          clearTimeout(wakeTimer);
+          setLoading(false);
+          setIsWakingUp(false);
+        }
       }
     };
 
     loadNews();
-  }, [category, query]);
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(wakeTimer);
+    };
+  }, [category, query, reloadKey]);
 
   // Load user interest analytics and Old Feed directly from Backend on initial mount
   useEffect(() => {
@@ -230,18 +296,63 @@ export const Home: React.FC = () => {
             )}
           </div>
 
-          {loading ? (
-            <div className="flex flex-col items-center justify-center h-64 bg-slate-900/40 rounded-3xl border border-slate-800">
-              <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-              <p className="text-slate-400 font-medium">Analyzing news feed & interests...</p>
-            </div>
-          ) : error ? (
-            <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 flex items-start space-x-4">
-              <AlertCircle className="text-red-400 w-6 h-6 flex-shrink-0 mt-0.5" />
-              <div>
-                <h3 className="text-red-400 font-bold mb-1">Failed to load news</h3>
-                <p className="text-red-400/80 text-sm">{error}</p>
+          {/* Waking / Error Notice when cached articles are already visible */}
+          {articles.length > 0 && error && (
+            <div className="flex items-center justify-between p-3.5 mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-xs shadow-sm">
+              <div className="flex items-center space-x-2">
+                <Sparkles className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <span>Cloud server is waking up. Displaying recent stories.</span>
               </div>
+              <button
+                onClick={() => setReloadKey((k) => k + 1)}
+                className="ml-3 font-bold underline hover:text-white transition-colors cursor-pointer"
+              >
+                Retry Refresh
+              </button>
+            </div>
+          )}
+
+          {/* Background refresh badge if user is viewing cached stories */}
+          {articles.length > 0 && loading && (
+            <div className="flex items-center space-x-2 px-3 py-1.5 mb-4 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400 text-xs w-fit">
+              <Loader2 className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+              <span>Checking cloud server for fresh updates...</span>
+            </div>
+          )}
+
+          {articles.length === 0 && loading ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 bg-slate-900/40 rounded-3xl border border-slate-800 text-center">
+              <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
+              <h3 className="text-lg font-bold text-white mb-2">
+                {isWakingUp ? 'Waking Up Cloud Server...' : 'Analyzing news feed & interests...'}
+              </h3>
+              <p className="text-slate-400 text-sm max-w-md">
+                {isWakingUp
+                  ? 'Render free-tier cloud servers sleep when idle. Booting up takes ~30–45s on first visit. Your news will load automatically!'
+                  : 'Curating real-time stories and personalizing your feed...'}
+              </p>
+              {isWakingUp && (
+                <div className="mt-4 inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-300 border border-amber-500/25 animate-pulse">
+                  <span>Container spinning up • Automatic retries active</span>
+                </div>
+              )}
+            </div>
+          ) : articles.length === 0 && error ? (
+            <div className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800 rounded-3xl p-8 text-center max-w-xl mx-auto shadow-2xl">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="text-amber-400 w-7 h-7" />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2">Cloud Server Is Waking Up</h3>
+              <p className="text-slate-400 text-sm mb-6 leading-relaxed">
+                Render free-tier instances sleep after periods of inactivity. If you haven't opened the site in a day or two, the server requires 30 to 50 seconds to complete cold startup.
+              </p>
+              <button
+                onClick={() => setReloadKey((k) => k + 1)}
+                className="inline-flex items-center space-x-2 px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-sm transition-all shadow-lg shadow-emerald-500/20 cursor-pointer"
+              >
+                <RefreshCw className="w-4 h-4" />
+                <span>Wake Server & Refresh</span>
+              </button>
             </div>
           ) : allReRanked.length === 0 ? (
             <div className="text-center py-20 bg-slate-900 rounded-3xl border border-slate-800">
