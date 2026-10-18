@@ -123,7 +123,7 @@ export const Navbar: React.FC = () => {
 
                 {/* Notifications Dropdown */}
                 {notificationsOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1rem))] bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2">
                     <div className="p-4 border-b border-slate-800 flex items-center justify-between">
                       <h3 className="text-sm font-bold text-white flex items-center space-x-2">
                         <Bell size={15} className="text-emerald-400" />
@@ -134,7 +134,7 @@ export const Navbar: React.FC = () => {
                       </button>
                     </div>
 
-                    <div className="max-h-80 overflow-y-auto">
+                    <div className="max-h-80 overflow-y-auto overflow-x-hidden">
                       {/* Welcome notification */}
                       <div className="p-4 border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors">
                         <div className="flex items-start space-x-3">
