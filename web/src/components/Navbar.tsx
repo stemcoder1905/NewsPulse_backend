@@ -121,59 +121,64 @@ export const Navbar: React.FC = () => {
                   <Bell size={20} />
                 </button>
 
-                {/* Notifications Dropdown */}
+                {/* Notifications Panel — fixed to viewport so it never clips on mobile */}
                 {notificationsOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-1rem))] bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-[60] animate-in fade-in slide-in-from-top-2">
-                    <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-white flex items-center space-x-2">
-                        <Bell size={15} className="text-emerald-400" />
-                        <span>Notifications</span>
-                      </h3>
-                      <button onClick={() => setNotificationsOpen(false)} className="text-slate-500 hover:text-white">
-                        <X size={16} />
-                      </button>
-                    </div>
+                  <>
+                    {/* invisible backdrop to catch outside taps */}
+                    <div className="fixed inset-0 z-[55]" onClick={() => setNotificationsOpen(false)} />
+                    <div className="fixed top-[4.25rem] right-2 left-2 sm:left-auto sm:w-96 bg-[#111827] border border-slate-700/80 rounded-2xl shadow-2xl shadow-black/40 overflow-hidden z-[60]"
+                         style={{ animation: 'fadeSlideDown 0.2s ease-out' }}>
+                      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+                        <h3 className="text-sm font-bold text-white flex items-center space-x-2">
+                          <Bell size={15} className="text-emerald-400" />
+                          <span>Notifications</span>
+                        </h3>
+                        <button onClick={() => setNotificationsOpen(false)} className="text-slate-500 hover:text-white p-1">
+                          <X size={16} />
+                        </button>
+                      </div>
 
-                    <div className="max-h-80 overflow-y-auto overflow-x-hidden">
-                      {/* Welcome notification */}
-                      <div className="p-4 border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Sparkles size={14} className="text-emerald-400" />
+                      <div className="max-h-72 overflow-y-auto">
+                        {/* Welcome notification */}
+                        <div className="p-4 border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Sparkles size={15} className="text-emerald-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm text-slate-200 font-medium">Welcome to NewsPulse!</p>
+                              <p className="text-xs text-slate-500 mt-1">Your personalized AI-powered news feed is ready. Browse categories to customize your experience.</p>
+                              <p className="text-[10px] text-slate-600 mt-1.5 flex items-center space-x-1">
+                                <Clock size={10} />
+                                <span>Just now</span>
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm text-slate-200 font-medium">Welcome to NewsPulse!</p>
-                            <p className="text-xs text-slate-500 mt-1">Your personalized AI-powered news feed is ready. Browse categories to customize your experience.</p>
-                            <p className="text-[10px] text-slate-600 mt-1.5 flex items-center space-x-1">
-                              <Clock size={10} />
-                              <span>Just now</span>
-                            </p>
+                        </div>
+
+                        {/* Feed update notification */}
+                        <div className="p-4 border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors">
+                          <div className="flex items-start space-x-3">
+                            <div className="w-9 h-9 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <Bell size={15} className="text-blue-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm text-slate-200 font-medium">News feed updated</p>
+                              <p className="text-xs text-slate-500 mt-1">Latest headlines across all categories have been refreshed with new stories.</p>
+                              <p className="text-[10px] text-slate-600 mt-1.5 flex items-center space-x-1">
+                                <Clock size={10} />
+                                <span>Recently</span>
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
 
-                      {/* Feed update notification */}
-                      <div className="p-4 border-b border-slate-800/60 hover:bg-slate-800/40 transition-colors">
-                        <div className="flex items-start space-x-3">
-                          <div className="w-8 h-8 rounded-full bg-blue-500/15 flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <Bell size={14} className="text-blue-400" />
-                          </div>
-                          <div>
-                            <p className="text-sm text-slate-200 font-medium">News feed updated</p>
-                            <p className="text-xs text-slate-500 mt-1">Latest headlines across all categories have been refreshed with new stories.</p>
-                            <p className="text-[10px] text-slate-600 mt-1.5 flex items-center space-x-1">
-                              <Clock size={10} />
-                              <span>Recently</span>
-                            </p>
-                          </div>
-                        </div>
+                      <div className="p-3 border-t border-slate-800 text-center">
+                        <p className="text-xs text-slate-500">You're all caught up! 🎉</p>
                       </div>
                     </div>
-
-                    <div className="p-3 border-t border-slate-800 text-center">
-                      <p className="text-xs text-slate-500">You're all caught up!</p>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
 
@@ -318,6 +323,10 @@ export const Navbar: React.FC = () => {
         @keyframes slideInRight {
           from { transform: translateX(100%); opacity: 0.5; }
           to   { transform: translateX(0);    opacity: 1;   }
+        }
+        @keyframes fadeSlideDown {
+          from { transform: translateY(-8px); opacity: 0; }
+          to   { transform: translateY(0);    opacity: 1; }
         }
       `}</style>
     </>

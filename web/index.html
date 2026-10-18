@@ -7,17 +7,38 @@
     <meta name="description" content="NEWSPULSE - Personalized News for You" />
     <title>NEWSPULSE</title>
     <style>
-      /* Hide Netlify "Powered by Netlify" floating badge */
-      [data-netlify-badge],
-      .netlify-identity-widget,
-      a[href*="netlify.com"][style*="position:fixed"],
-      a[href*="netlify.com"][style*="position: fixed"],
-      div[data-netlify],
-      #netlify-badge-wrapper { display: none !important; }
+      /* CSS fallback to hide Netlify badge */
+      [data-netlify-badge], #netlify-badge-wrapper,
+      a[href*="netlify.com"][style*="position"],
+      .netlify-identity-widget { display: none !important; }
     </style>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!-- Remove Netlify "Powered by Netlify" badge via JS -->
+    <script>
+      (function () {
+        function removeBadge() {
+          document.querySelectorAll('a[href*="netlify.com"]').forEach(function(el) {
+            var s = el.getAttribute('style') || '';
+            if (s.includes('fixed') || s.includes('z-index')) {
+              el.remove();
+            }
+          });
+          var w = document.getElementById('netlify-badge-wrapper');
+          if (w) w.remove();
+        }
+        // Run immediately + after delays
+        removeBadge();
+        setTimeout(removeBadge, 500);
+        setTimeout(removeBadge, 2000);
+        // Watch for badge injected dynamically
+        var obs = new MutationObserver(removeBadge);
+        obs.observe(document.body || document.documentElement, { childList: true, subtree: true });
+        // Stop watching after 10s
+        setTimeout(function() { obs.disconnect(); }, 10000);
+      })();
+    </script>
   </body>
 </html>
